@@ -1,5 +1,6 @@
 from const import *
 from datetime import datetime
+import os
 
 def get_gender(gender):
     if gender == 'GENDER001':
@@ -16,11 +17,11 @@ def get_blood_type(blood_type):
     if blood_type == '17M110001':
         return BloodType.A_POSITIVE[0]
     elif blood_type == '17M110002':
-        return BloodType.AB_POSITIVE[0]
+        return BloodType.AB_POSITIVE[0] 
     elif blood_type == '17M110003':
         return BloodType.B_POSITIVE[0]
     elif blood_type == '17M110004':
-        return BloodType.O_NEGATIVE[0]
+        return BloodType.O_POSITIVE[0]
     else:
         return 0
 
@@ -30,7 +31,7 @@ def get_marital_status(marital_status):
     elif marital_status == 'MARITAL02':
         return MaritalStatus.SINGLE[0]
     elif marital_status == 'MARITAL03':
-        return MaritalStatus.DIVORCED[0]
+        return MaritalStatus.WINDOWWINDOWER[0]
     else:
         return 0
 
@@ -66,13 +67,23 @@ def get_int_type(int_type):
 
     return int_type
 
-def get_datetime_type(datetime_type):
-    try:
-        datetime_type = datetime(datetime_type)
-    except:
-        datetime_type = datetime.now()
+date_format = "%Y-%m-%d %H:%M:%S"
 
-    return datetime_type
+def get_datetime_type(datetime_type, none=False):
+    try:
+        return datetime.combine(datetime_type, datetime.min.time())
+    except:
+        if datetime_type is None:
+            if none:
+                return None
+            else:
+                return datetime.now()
+        else:
+            try:
+                return datetime.strptime(datetime_type, date_format)
+            except:
+                timestamp_s = int(int(datetime_type.strip("/Date()"))) / 1000
+                return datetime.fromtimestamp(timestamp_s)
 
 def formatted(data):
     formatted_data = []
@@ -116,10 +127,19 @@ def get_family_status(family_status):
     elif family_status == '17M130005':
         return FamilyStatus.CHILD[0]
     elif family_status == '17M130006':
-        return FamilyStatus.BROTHER[0]
-    elif family_status == '17M130007':
         return FamilyStatus.SISTER[0]
+    elif family_status == '17M130007':
+        return FamilyStatus.BROTHER[0]
     elif family_status == '17M130008':
         return FamilyStatus.RELATIVES[0]
     else:
         return 0
+
+def generate_password(password_raw=None):
+    if password_raw is not None:
+        if password_raw.startswith("/Date"):
+            password_raw = password_raw.strip("/Date()").replace(" ", "")
+            return datetime.fromtimestamp(int(password_raw) / 1000).strftime("%d%m%Y")
+        return datetime.strptime(password_raw, date_format).strftime("%d%m%Y")
+    else:
+        return "p455word"

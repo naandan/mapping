@@ -1,7 +1,7 @@
-
 class Gender:
-    MAN = 1, "Man"
-    WOMAN = 2, "Woman"
+    MAN = 1, "Laki-laki"
+    WOMAN = 2, "Perempuan"
+
 
 class BloodType:
     A_POSITIVE = 1, 'A+'
@@ -14,32 +14,26 @@ class BloodType:
     O_NEGATIVE = 8, 'O-'
 
 class MaritalStatus:
-    SINGLE = 1, 'Single'
-    MARRIED = 2, 'Married'
-    DIVORCED = 3, 'Divorced'
-    WIDOWED = 4, 'Widowed'
+    SINGLE = 1, 'Belum Menikah'
+    MARRIED = 2, 'Menikah'
+    WINDOWWINDOWER = 3, 'Janda/Duda'
 
 class FamilyStatus:
-    GRANDFATHHER = 1, 'Grandfather'
-    GRANDMOTHER = 2, 'Grandmother'
-    FATHER = 3, 'Father'
-    MOTHER = 4, 'Mother'
-    CHILD = 5, 'Child'
-    STEPCHILD = 6, 'Step Child'
-    ADOPTEDCHILD = 7, 'Adopted Child'
-    STEPMOTHER = 8, 'Step Mother'
-    STEPFATHER = 9, 'Step Father'
-    # Todo: Add family status
-    HUSBAND = 10, 'Husband'
-    WIFE = 11, 'Wife'
-    BROTHER = 12, 'Brother'
-    SISTER = 13, 'Sister'
-    RELATIVES = 14, 'Relatives'
-    SIBLING = 15, 'Sibling'
+    FATHER = 1, 'Ayah',
+    MOTHER = 2, 'Ibu'
+    HUSBAND = 3, 'Suami'
+    WIFE = 4, 'Istri'
+    CHILD = 5, 'Anak'
+    BROTHER = 6, 'Kakak'
+    SISTER = 7, 'Adik'
+    RELATIVES = 8, 'Kerabat'
 
 class BaptisStatus:
-    BAPTISM_CILD = 1, 'Baptis Child'
-    BAPTISM_ADULT = 2, 'Baptism Adult'
+    BAPTISM_CILD = 1, 'Anak'
+    BAPTISM_ADULT = 2, 'Dewasa'
+    BAPTISM_ATESTASI_MASUK = 3, 'Atestasi Masuk'
+    BAPTISM_ATESTASI_KELUAR = 4, 'Atestasi Keluar'
+    BAPTISM_SIDI = 5, 'Sidi'
 
 class AgamaStatus:
     ISLAM = 1, 'Islam'
@@ -58,3 +52,8 @@ class SourcePresence:
     FINGERPRINT = 1, 'Fingerprint'
     QR_CODE = 2, 'QR Code'
     RFID = 3, 'RFID'
+
+class Role:
+    CONGREGATION = 1, 'Congregation'
+    SERVANTOFGOD = 2, 'Servant Of God'
+    EMPLOYEE = 3, 'Employee'
