@@ -20,7 +20,7 @@ def get_db_connection():
     sql_server_conn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+sql_server_host+';DATABASE='+sql_server_db+';UID='+sql_server_user+';PWD='+sql_server_pass+';TrustServerCertificate=yes;')
 
     postgres_host = '127.0.0.1'
-    postgres_db = 'gereja'
+    postgres_db = 'gkim'
     postgres_user = 'root'
     postgres_pass = 'password'
 
