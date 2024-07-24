@@ -84,10 +84,10 @@ def insert_worship(sql_server_conn, postgres_conn, *args, **kwargs):
         postgres_cursor.execute(
             """
             INSERT INTO management_managementofworship
-            (id, name, start_time, end_time, type, status, qrcode, created_at, updated_at, location_id, pendeta_id) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (id, name, start_time, end_time, type, status, qrcode, created_at, updated_at, location_id, pendeta_id, day_worship)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (uuid4(), res['nama_jenis_staff'], res['masuk'], res['keluar'], 1, True, None, get_datetime_type(res['created_date']), get_datetime_type(res['last_update']), location_id, None)
+            (uuid4(), res['nama_jenis_staff'], res['masuk'], res['keluar'], TypeOfWorship.OFFLINE[0], True, None, get_datetime_type(res['created_date']), get_datetime_type(res['last_update']), location_id, None, 7)
         )
         postgres_conn.commit()
         print(f"{index+1}. {res['nama_jenis_staff']}")
@@ -123,6 +123,7 @@ def insert_master(sql_server_conn, postgres_conn, *args, **kwargs):
     insertedId = []
     nikInserted = []
     insertedNoReg = []
+    insertedPhone = []
 
     def save_master(res, id):
         print(id)
@@ -155,11 +156,15 @@ def insert_master(sql_server_conn, postgres_conn, *args, **kwargs):
             res['no_reg'] = f"rand-{inn}"
         insertedNoReg.append(res['no_reg'])
 
+        if res['no_hp1'] is not None and res['no_hp1'] in insertedPhone:
+            res['no_hp1'] = None
+        insertedPhone.append(res['no_hp1'])
+
         res['password'] = generate_password(res['tgl_lahir'])
         res['tgl_lahir'] = get_datetime_type(res['tgl_lahir'], True)
         res['tgl_kematian'] = get_datetime_type(res['tgl_kematian'], True)
 
-        location_id = postgres_cursor.execute("SELECT id FROM master_location WHERE name = '" + res['lokasi'] + "'").fetchone()[0] if res['lokasi'] is not None else None
+        location_id = postgres_cursor.execute("SELECT id FROM master_location WHERE name = '" + res['lokasi'] + "'").fetchone()[0] if res['lokasi'] is not None else '3e8e5c5e-0602-40a1-a135-66864c26c601'
         postgres_cursor.execute(
             """
             INSERT INTO auth_user
@@ -344,112 +349,115 @@ def insert_congregation(sql_server_conn, postgres_conn, *args, **kwargs):
         inn += 1
 # insert_congregation()
 
-@use_db_connection
-def insert_employee(sql_server_conn, postgres_conn, *args, **kwargs):
-    sql_server_cursor = sql_server_conn.cursor()
-    postgres_cursor = postgres_conn.cursor()  
+# @use_db_connection
+# def insert_employee(sql_server_conn, postgres_conn, *args, **kwargs):
+#     sql_server_cursor = sql_server_conn.cursor()
+#     postgres_cursor = postgres_conn.cursor()  
 
-    inserted_master_id = []
-    inserted_nik = []
-    inserted_bpjs_employment = []
-    inserted_bpjs_health = []
+#     inserted_master_id = []
+#     inserted_nik = []
+#     inserted_bpjs_employment = []
+#     inserted_bpjs_health = []
 
-    def save(res):
-        index = res.name+1
-        print(index)
+#     def save(res):
+#         index = res.name+1
+#         print(index)
 
-        res['no_rekening'] = f"rand_{index}"
-        res['jabatan'] = f"rand_{index}"
+#         res['no_rekening'] = f"rand_{index}"
+#         res['jabatan'] = f"rand_{index}"
 
-        if res['nik'] in inserted_nik or res['nik'] is None:
-            res['nik'] = f"rand-{index}-nik"
-        inserted_nik.append(res['nik'])
+#         if res['nik'] in inserted_nik or res['nik'] is None:
+#             res['nik'] = f"rand-{index}-nik"
+#         inserted_nik.append(res['nik'])
 
-        if res['no_bpjs_ketenagakerjaan'] in inserted_bpjs_employment:
-            res['no_bpjs_ketenagakerjaan'] = None
-        inserted_bpjs_employment.append(res['no_bpjs_ketenagakerjaan'])
+#         if res['no_bpjs_ketenagakerjaan'] in inserted_bpjs_employment:
+#             res['no_bpjs_ketenagakerjaan'] = None
+#         inserted_bpjs_employment.append(res['no_bpjs_ketenagakerjaan'])
 
-        if res['no_bpjs_kesehatan'] in inserted_bpjs_health:
-            res['no_bpjs_kesehatan'] = None
-        inserted_bpjs_health.append(res['no_bpjs_kesehatan'])
+#         if res['no_bpjs_kesehatan'] in inserted_bpjs_health:
+#             res['no_bpjs_kesehatan'] = None
+#         inserted_bpjs_health.append(res['no_bpjs_kesehatan'])
 
-        if len(inserted_master_id) == 0:
-            masteruser_id = postgres_cursor.execute(f"SELECT id FROM master_master WHERE full_name = '{res['nama_depan']} {res['nama_belakang']}'").fetchone()
-        else:
-            placeholders = ", ".join(["%s"] * len(inserted_master_id))
-            masteruser_id = postgres_cursor.execute(f"SELECT id FROM master_master WHERE full_name = '{res['nama_depan']} {res['nama_belakang']}' AND id NOT IN ({placeholders})", inserted_master_id).fetchone()
-        if masteruser_id:
-            masteruser_id = masteruser_id[0]
-            postgres_cursor.execute(
-                """
-                INSERT INTO master_employee
-                (id, nik, religion, bpjs_employment, bpjs_health, account_number, start_date, employee_position, is_employee, created_at, updated_at, masteruser_id, out_of_work)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (str(uuid4()), res['nik'], get_religion(res['id_agama']), get_int_type(res['no_bpjs_ketenagakerjaan']), get_int_type(res['no_bpjs_kesehatan']), res['no_rekening'], res['tgl_masuk'], res['jabatan'], True, get_datetime_type(res['created_date']), datetime.now(), masteruser_id, res['tgl_keluar'])
-            )
-            postgres_conn.commit()
-            inserted_master_id.append(masteruser_id)
+#         if len(inserted_master_id) == 0:
+#             masteruser_id = postgres_cursor.execute(f"SELECT id FROM master_master WHERE full_name = '{res['nama_depan']} {res['nama_belakang']}'").fetchone()
+#         else:
+#             placeholders = ", ".join(["%s"] * len(inserted_master_id))
+#             masteruser_id = postgres_cursor.execute(f"SELECT id FROM master_master WHERE full_name = '{res['nama_depan']} {res['nama_belakang']}' AND id NOT IN ({placeholders})", inserted_master_id).fetchone()
+#         if masteruser_id:
+#             masteruser_id = masteruser_id[0]
+#             postgres_cursor.execute(
+#                 """
+#                 INSERT INTO master_employee
+#                 (id, nik, religion, bpjs_employment, bpjs_health, account_number, start_date, employee_position, is_employee, created_at, updated_at, masteruser_id, out_of_work)
+#                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+#                 """,
+#                 (str(uuid4()), res['nik'], get_religion(res['id_agama']), get_int_type(res['no_bpjs_ketenagakerjaan']), get_int_type(res['no_bpjs_kesehatan']), res['no_rekening'], res['tgl_masuk'], res['jabatan'], True, get_datetime_type(res['created_date']), datetime.now(), masteruser_id, res['tgl_keluar'])
+#             )
+#             postgres_conn.commit()
+#             inserted_master_id.append(masteruser_id)
 
-    res= sql_server_cursor.execute(
-        f"""
-            SELECT 
-                t_mst_karyawan.nama_depan,
-                t_mst_karyawan.nama_belakang,
-                t_mst_karyawan.nik,
-                t_mst_karyawan.id_agama,
-                t_mst_karyawan.no_bpjs_ketenagakerjaan,
-                t_mst_karyawan.no_bpjs_kesehatan,
-                t_mst_karyawan.tgl_masuk,
-                t_mst_karyawan.created_date,
-                t_mst_karyawan.tgl_keluar
-            FROM 
-                t_mst_karyawan
-        """
-    ).fetchall()
-    column_names = [desc[0] for desc in sql_server_cursor.description]
-    res = to_df(res, column_names)
-    res.apply(lambda x: save(x), axis=1)
+#     res= sql_server_cursor.execute(
+#         f"""
+#             SELECT 
+#                 t_mst_karyawan.nama_depan,
+#                 t_mst_karyawan.nama_belakang,
+#                 t_mst_karyawan.nik,
+#                 t_mst_karyawan.id_agama,
+#                 t_mst_karyawan.no_bpjs_ketenagakerjaan,
+#                 t_mst_karyawan.no_bpjs_kesehatan,
+#                 t_mst_karyawan.tgl_masuk,
+#                 t_mst_karyawan.created_date,
+#                 t_mst_karyawan.tgl_keluar
+#             FROM 
+#                 t_mst_karyawan
+#             WHERE 
+#                 t_mst_karyawan.id_status_karyawan = '17M410001'
+#                 OR t_mst_karyawan.id_status_karyawan = '17M410002'
+#         """
+#     ).fetchall()
+#     column_names = [desc[0] for desc in sql_server_cursor.description]
+#     res = to_df(res, column_names)
+#     res.apply(lambda x: save(x), axis=1)
 # insert_employee()
 
-@use_db_connection
-def insert_servantofgod(sql_server_conn, postgres_conn, *args, **kwargs):
-    sql_server_cursor = sql_server_conn.cursor()
-    postgres_cursor = postgres_conn.cursor()  
+# @use_db_connection
+# def insert_servantofgod(sql_server_conn, postgres_conn, *args, **kwargs):
+#     sql_server_cursor = sql_server_conn.cursor()
+#     postgres_cursor = postgres_conn.cursor()  
 
-    def save(res):
-        index = res.name+1
-        print(index)
+#     def save(res):
+#         index = res.name+1
+#         print(index)
 
-        masteruser_id = postgres_cursor.execute(f"SELECT id FROM master_master WHERE full_name = '{res['nama_depan']} {res['nama_belakang']}'").fetchone()
-        if masteruser_id:
-            masteruser_id = masteruser_id[0]
-            postgres_cursor.execute(
-                """
-                INSERT INTO master_servantofgod
-                (id, member_number, ordination, pastor, church, membership_status, is_servant_of_god, created_at, updated_at, masteruser_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (str(uuid4()), res['no_reg'], None, None, None, None, True, get_datetime_type(res['created_date']), datetime.now(), masteruser_id)
-            )
-            postgres_conn.commit()
+#         masteruser_id = postgres_cursor.execute(f"SELECT id FROM master_master WHERE full_name = '{res['nama_depan']} {res['nama_belakang']}'").fetchone()
+#         if masteruser_id:
+#             masteruser_id = masteruser_id[0]
+#             postgres_cursor.execute(
+#                 """
+#                 INSERT INTO master_servantofgod
+#                 (id, member_number, ordination, pastor, church, membership_status, is_servant_of_god, created_at, updated_at, masteruser_id)
+#                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+#                 """,
+#                 (str(uuid4()), res['no_reg'], None, None, None, False, True, get_datetime_type(res['created_date']), datetime.now(), masteruser_id)
+#             )
+#             postgres_conn.commit()
     
-    res= sql_server_cursor.execute(
-        f"""
-            SELECT 
-                t_mst_karyawan.nama_depan,
-                t_mst_karyawan.nama_belakang,
-                t_mst_karyawan.no_reg,
-                t_mst_karyawan.created_date
-            FROM 
-                t_mst_karyawan
-            WHERE 
-                t_mst_karyawan.id_status_karyawan = '17M410008'
-        """
-    ).fetchall()
-    column_names = [desc[0] for desc in sql_server_cursor.description]
-    res = to_df(res, column_names)
-    res.apply(lambda x: save(x), axis=1)
+#     res= sql_server_cursor.execute(
+#         f"""
+#             SELECT 
+#                 t_mst_karyawan.nama_depan,
+#                 t_mst_karyawan.nama_belakang,
+#                 t_mst_karyawan.no_reg,
+#                 t_mst_karyawan.created_date
+#             FROM 
+#                 t_mst_karyawan
+#             WHERE 
+#                 t_mst_karyawan.id_status_karyawan = '17M410008'
+#         """
+#     ).fetchall()
+#     column_names = [desc[0] for desc in sql_server_cursor.description]
+#     res = to_df(res, column_names)
+#     res.apply(lambda x: save(x), axis=1)
 # insert_servantofgod()
 
 @use_db_connection
@@ -495,62 +503,40 @@ def insert_family(sql_server_conn, postgres_conn, *args, **kwargs):
     for inn, employee in enumerate(employees):
         print(inn+1)
         pre_save(employee)
-
-    # employees = ['20M000004', '19M003352', '19M003353', '19M003354', '19M003355', '19M003356', '19M003357']
-    # for employee in employees:
-    #     print(inn)
-    #     pre_save({'id': employee, 'no_reg': ''})
-    #     inn += 1
 # insert_family()
 
-@use_db_connection
-def insert_struktural_periode(sql_server_conn, postgres_conn, *args, **kwargs):
-    sql_server_cursor = sql_server_conn.cursor()
-    postgres_cursor = postgres_conn.cursor()
-
-    strukturs = sql_server_cursor.execute("SELECT tglawal, tglakhir FROM t_mst_pr_struktur").fetchall()
-    column_names = [desc[0] for desc in sql_server_cursor.description]
-    strukturs = to_df(strukturs, column_names)
-    inserted = []
-    for i, row in strukturs.iterrows():
-        print(i+1)
-        if row['tglawal'] in inserted:
-            continue
-        postgres_cursor.execute(
-            """
-            INSERT INTO structural_priodestructural
-            (id, name, start_date, end_date, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """,
-            (str(uuid4()),f"Periode {row['tglawal'].strftime('%Y')}", row['tglawal'], row['tglakhir'], datetime.now(), datetime.now())
-        )
-        inserted.append(row['tglawal'])
-        postgres_conn.commit()
-# insert_struktural_periode()
 
 # @use_db_connection
-# def check(sql_server_conn, postgres_conn, *args, **kwargs):
+# def insert_struktural_periode(sql_server_conn, postgres_conn, *args, **kwargs):
 #     sql_server_cursor = sql_server_conn.cursor()
 #     postgres_cursor = postgres_conn.cursor()
 
-#     inserted_congregation_id = []
-#     not_match = []
-#     congregations = requests.post(url='http://gw.gkimkaimtong.org:8888/HR/Services/WebService.asmx/GetKaryawan').json()['data']
-#     for i in congregations:
-#         inserted_congregation_id.append(i['id'])
-#     employees = sql_server_cursor.execute("SELECT id, no_reg FROM t_mst_karyawan").fetchall()
-#     for i in employees:
-#         if i[0] not in inserted_congregation_id:
-#             not_match.append(i[0])
-#             print(i[0], i[1])
-#     print(not_match)
-# check()
+#     strukturs = sql_server_cursor.execute("SELECT tglawal, tglakhir FROM t_mst_pr_struktur").fetchall()
+#     column_names = [desc[0] for desc in sql_server_cursor.description]
+#     strukturs = to_df(strukturs, column_names)
+#     inserted = []
+#     for i, row in strukturs.iterrows():
+#         print(i+1)
+#         if row['tglawal'] in inserted:
+#             continue
+#         postgres_cursor.execute(
+#             """
+#             INSERT INTO structural_priodestructural
+#             (id, name, start_date, end_date, created_at, updated_at)
+#             VALUES (%s, %s, %s, %s, %s, %s)
+#             """,
+#             (str(uuid4()),f"Periode {row['tglawal'].strftime('%Y')}", row['tglawal'], row['tglakhir'], datetime.now(), datetime.now())
+#         )
+#         inserted.append(row['tglawal'])
+#         postgres_conn.commit()
+# insert_struktural_periode()
 
 # insert_location()
 # insert_worship()
 # insert_master()
 # insert_congregation()
+insert_family()
+
 # insert_employee()
 # insert_servantofgod()
-# insert_family()
 # insert_struktural_periode()

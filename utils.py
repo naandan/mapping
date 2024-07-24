@@ -142,4 +142,10 @@ def generate_password(password_raw=None):
             return datetime.fromtimestamp(int(password_raw) / 1000).strftime("%d%m%Y")
         return datetime.strptime(password_raw, date_format).strftime("%d%m%Y")
     else:
-        return "p455word"
+        return "gkimjuli2024!"
+    
+def get_worship_status(worship_status):
+    if worship_status == '21M060001' or worship_status == '21M060002':
+        return TypeOfWorship.ONLINE[0]
+    else:
+        return TypeOfWorship.OFFLINE[0]
