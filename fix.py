@@ -12,15 +12,15 @@ import requests
 from datetime import datetime
 
 def get_db_connection():
-    sql_server_host = '127.0.0.1,1433'
+    sql_server_host = '192.168.109.80,1433'
     sql_server_db = 'eHC'
     sql_server_user = 'sa'
     sql_server_pass = 'Admin#1234'
 
     sql_server_conn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+sql_server_host+';DATABASE='+sql_server_db+';UID='+sql_server_user+';PWD='+sql_server_pass+';TrustServerCertificate=yes;')
 
-    postgres_host = '127.0.0.1'
-    postgres_db = 'gkim'
+    postgres_host = '192.168.109.80'
+    postgres_db = 'gereja'
     postgres_user = 'root'
     postgres_pass = 'password'
 
@@ -146,8 +146,11 @@ def insert_master(sql_server_conn, postgres_conn, *args, **kwargs):
         res['password'] = generate_password(res['tgl_lahir'])
         res['tgl_lahir'] = get_datetime_type(res['tgl_lahir'], True)
         res['tgl_kematian'] = get_datetime_type(res['tgl_kematian'], True)
-
-        location_id = postgres_cursor.execute(f"SELECT id FROM master_location WHERE name = '{res['lokasi']}'").fetchone()[0] if res['lokasi'] is not None else 'bb9488cf-7620-4901-a743-e041d313986f'
+        
+        if res['lokasi']:
+            location_id = postgres_cursor.execute(f"SELECT id FROM master_location WHERE name = '{res['lokasi']}'").fetchone()[0]
+        else:
+            location_id = postgres_cursor.execute(f"SELECT id FROM master_location WHERE name = 'BANDUNG PASKAL'").fetchone()[0]
         postgres_cursor.execute(
             """
             INSERT INTO auth_user
@@ -194,19 +197,23 @@ def insert_master(sql_server_conn, postgres_conn, *args, **kwargs):
             LEFT JOIN
                 t_mst_tmp_lokasi ON t_mst_tmp_lokasi.id = t_mst_karyawan.id_tmp_lokasi
             WHERE 
-                t_mst_karyawan.id = '{employee['id']}'
+                t_mst_karyawan.id = '{employee}'
             """
         ).fetchall()
         if res:
             column_names = [desc[0] for desc in sql_server_cursor.description]
             res = to_df(res, column_names, to_dict=True)
-        else:
-            res = requests.post(url=f"http://gw.gkimkaimtong.org:8888/HR/Services/WebService.asmx/GetPersonalData?id={employee['no_reg']}").json()[0]
         save_master(res, counter)
 
-    employees = requests.post(url='http://gw.gkimkaimtong.org:8888/HR/Services/WebService.asmx/GetKaryawan').json()['data']
+    employees = sql_server_cursor.execute(
+        f"SELECT id FROM t_mst_karyawan"
+    )
+    employee_id = []
     for employee in employees:
-        pre_save(employee, counter)
+        employee_id.append(employee[0])
+    
+    for e in employee_id:
+        pre_save(e, counter)
         counter += 1
 
 @use_db_connection
@@ -283,9 +290,14 @@ def insert_congregation(sql_server_conn, postgres_conn, *args, **kwargs):
         insertedMaster.append(masteruser_id)
         postgres_conn.commit()
 
-    employees = requests.post(url="http://gw.gkimkaimtong.org:8888/HR/Services/WebService.asmx/GetKaryawan").json()['data']
-    for counter, employee in enumerate(employees):
-        print(counter+1, employee['nama'])
+    employees = sql_server_cursor.execute(
+        f"SELECT id FROM t_mst_karyawan"
+    )
+    employee_id = []
+    for employee in employees:
+        employee_id.append(employee[0])
+    for counter, employee in enumerate(employee_id):
+        print(counter+1)
         res = sql_server_cursor.execute(
             f"""
             SELECT 
@@ -306,14 +318,12 @@ def insert_congregation(sql_server_conn, postgres_conn, *args, **kwargs):
             LEFT JOIN
                 t_mst_jenis_staff ON t_mst_jenis_staff.id = t_mst_karyawan.id_jenis_staff
             WHERE
-                t_mst_karyawan.id = '{employee['id']}'
+                t_mst_karyawan.id = '{employee}'
             """
         ).fetchall()
         if res:
             column_names = [desc[0] for desc in sql_server_cursor.description]
             res = to_df(res, column_names, to_dict=True)
-        else:
-            res = requests.post(url=f"http://gw.gkimkaimtong.org:8888/HR/Services/WebService.asmx/GetPersonalData?id={employee['no_reg']}").json()[0]
         save(res, counter)
         counter += 1
 
@@ -345,20 +355,24 @@ def insert_family(sql_server_conn, postgres_conn, *args, **kwargs):
                         postgres_conn.commit()
     
     def pre_save(res):
-        master = sql_server_cursor.execute(f"SELECT id, nama_depan, nama_belakang FROM t_mst_karyawan WHERE id = '{res['id']}'").fetchone()
+        master = sql_server_cursor.execute(f"SELECT id, nama_depan, nama_belakang FROM t_mst_karyawan WHERE id = '{res}'").fetchone()
         if master:
             master = {
                 'id': master[0],
                 'nama_depan': master[1],
                 'nama_belakang': master[2]
             }
-        else:
-            master = requests.post(url=f"http://gw.gkimkaimtong.org:8888/HR/Services/WebService.asmx/GetPersonalData?id={res['no_reg']}").json()[0]
         save(master)
     
-    employees = requests.post(url='http://gw.gkimkaimtong.org:8888/HR/Services/WebService.asmx/GetKaryawan').json()['data']
-    for counter, employee in enumerate(employees):
-        print(counter+1, employee['nama'])
+    employees = sql_server_cursor.execute(
+        f"SELECT id FROM t_mst_karyawan"
+    )
+    employee_id = []
+    for employee in employees:
+        employee_id.append(employee[0])
+
+    for counter, employee in enumerate(employee_id):
+        print(counter+1, employee)
         pre_save(employee)
         
 # insert_location()
